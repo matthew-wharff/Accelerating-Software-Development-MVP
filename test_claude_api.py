@@ -1,6 +1,0 @@
-import anthropic
-from config import ANTHROPIC_API_KEY
-
-client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-response = client.messages.create(model="claude-sonnet-4-20250514", max_tokens=100, messages=[{"role": "user", "content": "Say hello!"}])
-print(response.content[0].text)
