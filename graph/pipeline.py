@@ -16,14 +16,31 @@ from pathlib import Path
 import anthropic
 from langgraph.graph import END, START, StateGraph
 
+import re
+
 from agents.coder import run_coder
 from agents.critic import run_critic
+from scripts.file_writer import write_project_files
 from scripts.logger import get_logger
 from state.schema import PipelineState, TaskEntry, TaskLogEntry, default_state
 
 CONVENTIONS_PATH = Path(__file__).parent.parent / "context" / "CONVENTIONS.md"
 
 logger = get_logger(__name__)
+
+
+def _project_name_slug(brief: str) -> str:
+    """Derive a safe directory name from the project brief.
+
+    Args:
+        brief: The plain-English project description from state.
+
+    Returns:
+        A lowercase, underscore-separated string of at most 40 characters,
+        defaulting to ``"project"`` if ``brief`` is blank.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "_", brief.lower().strip()).strip("_")
+    return (slug[:40] or "project")
 
 
 def coder_node(state: PipelineState) -> dict:
@@ -64,9 +81,12 @@ def coder_node(state: PipelineState) -> dict:
         "dependencies_context": "\n".join(task.get("dependency_paths", [])),
     }
 
+    project_name = _project_name_slug(state.get("project_brief", ""))
+
     try:
         conventions = CONVENTIONS_PATH.read_text(encoding="utf-8")
-        file_path = run_coder(coder_task, conventions)
+        code_dict = run_coder(coder_task, conventions)
+        new_paths = write_project_files(code_dict, project_name)
     except KeyError as exc:
         logger.error("coder_node: missing required task key: %s", exc)
         return {"status": "failed"}
@@ -75,7 +95,11 @@ def coder_node(state: PipelineState) -> dict:
             "coder_node: Claude API error for %s: %s", task["target_file"], exc
         )
         return {"status": "failed"}
+    except (ValueError, OSError) as exc:
+        logger.error("coder_node: file_writer error for %s: %s", task["target_file"], exc)
+        return {"status": "failed"}
 
+    file_path = new_paths[0]
     log_entry: TaskLogEntry = {
         "task_id": task["task_id"],
         "task_name": f"Implement {task['target_file']}",
@@ -87,7 +111,7 @@ def coder_node(state: PipelineState) -> dict:
     logger.info("coder_node: wrote %s", file_path)
 
     return {
-        "generated_file_paths": state["generated_file_paths"] + [file_path],
+        "generated_file_paths": state["generated_file_paths"] + new_paths,
         "task_log": state["task_log"] + [log_entry],
         "current_task_index": current_index + 1,
     }
@@ -156,9 +180,10 @@ if __name__ == "__main__":
             task_id="task_001",
             target_file="hello_pipeline.py",
             description=(
-                "Write a Python module with a single function `greet(name: str) -> str` "
-                "that returns the string 'Hello, {name}!'. "
-                "Include a Google-style docstring and type annotations."
+               # "Write a Python module with a single function `greet(name: str) -> str` "
+               # "that returns the string 'Hello, {name}!'. "
+               # "Include a Google-style docstring and type annotations."
+               "Build a Python REST API for a task manager with SQLite. Include endpoints for create, read, update, delete tasks. Use FastAPI and include basic input validation."
             ),
             interface_refs=[],
             dependency_paths=[],

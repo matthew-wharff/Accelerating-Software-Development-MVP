@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Skill(claude-api)",
-      "Skill(claude-api:*)"
+      "Skill(claude-api:*)",
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(.venv/bin/pip freeze:*)",
+      "Bash(ls /home/dev-projects/Repos/Accelerating-Software-Development/.venv/bin/python*)",
+      "Bash(/home/dev-projects/Repos/Accelerating-Software-Development/.venv/bin/python3 -m pip install anthropic)"
     ]
   }
 }

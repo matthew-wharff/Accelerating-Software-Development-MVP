@@ -7,15 +7,15 @@ from scripts.logger import get_logger
 
 logger = get_logger(__name__)
 
-OUTPUT_DIR = Path(__file__).parent.parent / "output"
 MODEL = "claude-sonnet-4-20250514"
 
 
-def run_coder(task: dict, conventions: str) -> str:
+def run_coder(task: dict, conventions: str) -> dict[str, str]:
     """Generate source code for a single file task using Claude.
 
-    Calls claude-sonnet-4-20250514 with a scoped task dict, writes the
-    generated code to /output/{target_file}, and returns the file path.
+    Calls claude-sonnet-4-20250514 with a scoped task dict and returns the
+    generated source code as a ``{filename: content}`` dict. The caller is
+    responsible for writing the content to disk (via ``scripts.file_writer``).
     The generated code is never held in LangGraph state.
 
     Args:
@@ -27,7 +27,8 @@ def run_coder(task: dict, conventions: str) -> str:
         conventions: Content of CONVENTIONS.md, injected on every call.
 
     Returns:
-        Absolute path to the written file as a string.
+        Dict mapping the target filename to the generated source code string,
+        e.g. ``{"main.py": "def greet(...): ..."}``.
 
     Raises:
         KeyError: If required task keys are missing.
@@ -79,18 +80,18 @@ def run_coder(task: dict, conventions: str) -> str:
         logger.error("Claude API call failed for %s: %s", target_file, e)
         raise
 
-    generated_code = response.content[0].text
+    first_block = response.content[0]
+    if not isinstance(first_block, anthropic.types.TextBlock):
+        raise ValueError(f"Unexpected content block type: {type(first_block)}")
+    generated_code = first_block.text
     logger.info("Coder received %d chars for %s", len(generated_code), target_file)
 
-    output_path = OUTPUT_DIR / target_file
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text(generated_code, encoding="utf-8")
-
-    logger.info("Coder wrote: %s", output_path)
-    return str(output_path)
+    return {target_file: generated_code}
 
 
 if __name__ == "__main__":
+    from scripts.file_writer import write_project_files
+
     conventions_path = Path(__file__).parent.parent / "context" / "CONVENTIONS.md"
     conventions_content = conventions_path.read_text(encoding="utf-8")
 
@@ -104,5 +105,7 @@ if __name__ == "__main__":
         "dependencies_context": "",
     }
 
-    output_file = run_coder(sample_task, conventions_content)
-    print(f"Generated: {output_file}")
+    code_dict = run_coder(sample_task, conventions_content)
+    written_paths = write_project_files(code_dict, project_name="hello_coder")
+    for p in written_paths:
+        print(f"Generated: {p}")
