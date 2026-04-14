@@ -72,7 +72,10 @@ def run_critic(file_path: str, conventions: str) -> str:
         logger.error("Claude API call failed for %s: %s", file_path, e)
         raise
 
-    feedback = response.content[0].text
+    first_block = response.content[0]
+    if not isinstance(first_block, anthropic.types.TextBlock):
+        raise ValueError(f"Unexpected content block type: {type(first_block)}")
+    feedback = first_block.text
     logger.debug("Feedback length: %d chars", len(feedback))
 
     output_path = OUTPUT_DIR / f"feedback_{source_path.name}.md"
