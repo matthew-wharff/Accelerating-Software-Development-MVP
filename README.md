@@ -25,7 +25,13 @@ This is the MVP — a deliberately minimal version that proves the orchestration
 
 ## Demo
 
-*(Add a screenshot or GIF of a pipeline run here — `/docs/demo.gif`)*
+![Pipeline run](./docs/demo.gif)
+
+### Sample Output
+
+See [`examples/task-manager-api/`](./examples/task-manager-api/) for 
+a complete, unedited pipeline run — input brief, generated code, and 
+critic feedback.
 
 ---
 
@@ -182,5 +188,3 @@ MIT — see [LICENSE](./LICENSE).
 
 Matthew Wharff
 LinkedIn: [link text](linkedin.com/in/matthew-wharff)
-
-*(Add your name, portfolio link, LinkedIn, or email here)*
