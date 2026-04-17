@@ -180,9 +180,6 @@ if __name__ == "__main__":
             task_id="task_001",
             target_file="hello_pipeline.py",
             description=(
-               # "Write a Python module with a single function `greet(name: str) -> str` "
-               # "that returns the string 'Hello, {name}!'. "
-               # "Include a Google-style docstring and type annotations."
                "Build a Python REST API for a task manager with SQLite. Include endpoints for create, read, update, delete tasks. Use FastAPI and include basic input validation."
             ),
             interface_refs=[],
