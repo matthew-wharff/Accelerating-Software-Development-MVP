@@ -16,7 +16,6 @@ from pathlib import Path
 import anthropic
 from langgraph.graph import END, START, StateGraph
 
-import re
 
 from agents.coder import run_coder
 from agents.critic import run_critic
@@ -28,19 +27,6 @@ CONVENTIONS_PATH = Path(__file__).parent.parent / "context" / "CONVENTIONS.md"
 
 logger = get_logger(__name__)
 
-
-def _project_name_slug(brief: str) -> str:
-    """Derive a safe directory name from the project brief.
-
-    Args:
-        brief: The plain-English project description from state.
-
-    Returns:
-        A lowercase, underscore-separated string of at most 40 characters,
-        defaulting to ``"project"`` if ``brief`` is blank.
-    """
-    slug = re.sub(r"[^a-z0-9]+", "_", brief.lower().strip()).strip("_")
-    return (slug[:40] or "project")
 
 
 def coder_node(state: PipelineState) -> dict:
@@ -81,12 +67,10 @@ def coder_node(state: PipelineState) -> dict:
         "dependencies_context": "\n".join(task.get("dependency_paths", [])),
     }
 
-    project_name = _project_name_slug(state.get("project_brief", ""))
-
     try:
         conventions = CONVENTIONS_PATH.read_text(encoding="utf-8")
         code_dict = run_coder(coder_task, conventions)
-        new_paths = write_project_files(code_dict, project_name)
+        new_paths = write_project_files(code_dict, ".")
     except KeyError as exc:
         logger.error("coder_node: missing required task key: %s", exc)
         return {"status": "failed"}
@@ -178,7 +162,7 @@ if __name__ == "__main__":
     initial_state["task_queue"] = [
         TaskEntry(
             task_id="task_001",
-            target_file="hello_pipeline.py",
+            target_file="generated_main.py",
             description=(
                "Build a Python REST API for a task manager with SQLite. Include endpoints for create, read, update, delete tasks. Use FastAPI and include basic input validation."
             ),

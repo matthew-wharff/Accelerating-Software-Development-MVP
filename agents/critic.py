@@ -78,7 +78,7 @@ def run_critic(file_path: str, conventions: str) -> str:
     feedback = first_block.text
     logger.debug("Feedback length: %d chars", len(feedback))
 
-    output_path = OUTPUT_DIR / f"feedback_{source_path.name}.md"
+    output_path = OUTPUT_DIR / f"feedback_{source_path.stem.removeprefix('generated_')}.md"
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(feedback, encoding="utf-8")
 

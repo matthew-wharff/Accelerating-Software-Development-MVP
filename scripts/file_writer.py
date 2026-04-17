@@ -76,7 +76,8 @@ def write_project_files(
     if not project_name or not project_name.strip():
         raise ValueError("project_name must not be empty")
 
-    root = (base_dir or OUTPUT_DIR) / project_name
+    base = base_dir or OUTPUT_DIR
+    root = base if project_name == "." else base / project_name
     written: list[str] = []
 
     for raw_name, content in files.items():
